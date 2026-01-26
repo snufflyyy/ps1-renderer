@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/braden/Documents/Programming/C/SeaChess/build/cmake_install.cmake",
+		"/Users/braden/Documents/Programming/C/SeaChess/build/external/SDL/cmake_install.cmake",
+		"/Users/braden/Documents/Programming/C/SeaChess/build/external/cglm/cmake_install.cmake",
+		"/Users/braden/Documents/Programming/C/SeaChess/build/external/freetype/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
