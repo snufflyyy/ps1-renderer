@@ -23,10 +23,13 @@ add_executable(
 	${PROJECT_NAME}
 	src/main.c
 	src/window.c
+	src/input.c
 	src/file.c
 	src/shader.c
+	src/texture.c
 	src/camera.c
 	src/quad.c
+	src/text.c
 	src/box.c
 )
 

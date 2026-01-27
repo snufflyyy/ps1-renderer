@@ -1,7 +1,9 @@
 #include "window.h"
+#include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
@@ -29,8 +31,10 @@ Window* window_create(u32 width, u32 height, const char* title) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
-   	window->sdl_window = SDL_CreateWindow(title, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+   	window->sdl_window = SDL_CreateWindow(title, width, height, SDL_WINDOW_OPENGL/* | SDL_WINDOW_RESIZABLE*/);
     if (!window->sdl_window) {
    		fprintf(stderr, "[ERROR] [WINDOW] Failed to create SDL window!\n");
     	SDL_Quit();
@@ -49,6 +53,9 @@ Window* window_create(u32 width, u32 height, const char* title) {
 
     SDL_GL_MakeCurrent(window->sdl_window, window->gl_context);
 
+    // vsync
+    SDL_GL_SetSwapInterval(1);
+
     if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress)) {
   		fprintf(stderr, "[ERROR] [WINDOW] Failed load GLAD!\n");
     	SDL_GL_DestroyContext(window->gl_context);
@@ -58,9 +65,21 @@ Window* window_create(u32 width, u32 height, const char* title) {
        	return NULL;
     }
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_MULTISAMPLE);
+
     window->running = true;
 
+    window->last_performance_counter = SDL_GetPerformanceCounter();
+    window->performance_frequency = (double) SDL_GetPerformanceFrequency();
+
+    window->fps = 0.0f;
+    window->delta_time = 0.0;
+
     printf("[INFO] [WINDOW] Created Window:\n");
+    printf("\tVideo Driver: %s\n", SDL_GetCurrentVideoDriver());
     printf("\tVender: %s\n", glGetString(GL_VENDOR));
     printf("\tRenderer: %s\n", glGetString(GL_RENDERER));
     printf("\tOpenGL Version: %s\n", glGetString(GL_VERSION));
@@ -70,6 +89,27 @@ Window* window_create(u32 width, u32 height, const char* title) {
 
 void window_update(Window* window) {
 	SDL_GL_SwapWindow(window->sdl_window);
+
+	u64 performance_counter = SDL_GetPerformanceCounter();
+	window->delta_time = (performance_counter - window->last_performance_counter) / window->performance_frequency;
+	window->last_performance_counter = performance_counter;
+
+	if (window->delta_time > 0.0) {
+	    window->fps = 1.0f / ((float) window->delta_time);
+	}
+}
+
+void window_event(Window* window, SDL_Event* event) {
+    switch (event->type) {
+        case SDL_EVENT_QUIT: { window->running = false; } break;
+		case SDL_EVENT_WINDOW_RESIZED: {
+			window_resize(window, event->window.data1, event->window.data2);
+		} break;
+    }
+}
+
+void window_set_clear_color(Window* window, float red, float green, float blue) {
+    glClearColor(red, green, blue, 1.0f);
 }
 
 void window_clear(Window* window) {

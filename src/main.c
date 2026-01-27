@@ -1,38 +1,42 @@
-#include <stdio.h>
-
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
 #include <cglm/cglm.h>
 
 #include "camera.h"
+#include "input.h"
+#include "text.h"
 #include "window.h"
-#include "shader.h"
-#include "box.h"
+
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
 
 int main() {
-	Window* window = window_create(1280, 720, "SeaChess");
-	Camera camera = camera_create(1280, 720);
+	Window* window = window_create(WINDOW_WIDTH, WINDOW_HEIGHT, "SeaChess");
+	Camera camera = camera_create(WINDOW_WIDTH, WINDOW_HEIGHT);
+	InputManager input_manager = {0};
+	FontManager font_manager = font_manager_create();
 
-	Box* box = box_create((vec2) { 1280.0f / 2.0f - 50.0f, 720.0f / 2.0f - 50.0f }, (vec2) { 100.0f, 100.0f }, shader_create("../shaders/shader.vert", "../shaders/shader.frag"));
+	Font font = font_create(&font_manager, 24, "../fonts/IBM Plex Sans/IBMPlexSans-Regular.ttf");
+
+	window_set_clear_color(window, 0.14f, 0.14f, 0.14f);
 
     while (window->running) {
+        input_manager_update(&input_manager);
     	SDL_Event event;
 	    while (SDL_PollEvent(&event)) {
-			switch (event.type) {
-				case SDL_EVENT_QUIT: window->running = false; break;
-				case SDL_EVENT_WINDOW_RESIZED: {
-					window_resize(window, event.window.data1, event.window.data2);
-					camera_resize(&camera, event.window.data1, event.window.data2);
-				} break;
-			}
+			window_event(window, &event);
+			camera_event(&camera, &event);
+			input_manager_event(&input_manager, &event);
 	    }
 		window_update(window);
+		camera_update(&camera, &input_manager);
 
 		window_clear(window);
-		box_draw(box, &camera);
+		text_draw(&camera, &font, &font_manager, (vec2) { 0.0f, 0.0f }, "SeaChess");
     }
 
-    box_destroy(box);
+    font_destroy(&font);
+    font_manager_destroy(&font_manager);
     camera_destroy(&camera);
     window_destroy(window);
 
