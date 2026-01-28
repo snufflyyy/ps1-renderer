@@ -2,8 +2,10 @@
 #include <SDL3/SDL.h>
 #include <cglm/cglm.h>
 
+#include "box.h"
 #include "camera.h"
 #include "input.h"
+#include "shader.h"
 #include "text.h"
 #include "window.h"
 
@@ -16,10 +18,9 @@ int main() {
 	InputManager input_manager = {0};
 	FontManager font_manager = font_manager_create();
 
-	Font font = font_create(&font_manager, 24, "../fonts/IBM Plex Sans/IBMPlexSans-Regular.ttf");
+	Font font = font_create(&font_manager, 36, "../fonts/IBM Plex Sans/IBMPlexSans-Regular.ttf");
 
 	window_set_clear_color(window, 0.14f, 0.14f, 0.14f);
-
     while (window->running) {
         input_manager_update(&input_manager);
     	SDL_Event event;
@@ -32,7 +33,7 @@ int main() {
 		camera_update(&camera, &input_manager);
 
 		window_clear(window);
-		text_draw(&camera, &font, &font_manager, (vec2) { 0.0f, 0.0f }, "SeaChess");
+		text_drawf(&camera, &font, &font_manager, (vec2) { 100.0f, 100.0f }, 1.0f, "Hello World!");
     }
 
     font_destroy(&font);
