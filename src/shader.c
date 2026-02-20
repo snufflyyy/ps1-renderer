@@ -7,7 +7,7 @@
 
 #include "file.h"
 
-static GLuint shader_create_module(const char* shader_source_path, GLint shader_type);
+static GLuint shader_create_module(const char* shader_source_path, GLenum shader_type);
 
 Shader shader_create(const char* vertex_shader_source_path, const char* fragment_shader_source_path) {
     Shader shader;
@@ -40,7 +40,7 @@ Shader shader_create(const char* vertex_shader_source_path, const char* fragment
     return shader;
 }
 
-static GLuint shader_create_module(const char* shader_source_path, GLint shader_type) {
+static GLuint shader_create_module(const char* shader_source_path, GLenum shader_type) {
     const char* shader_source = file_open(shader_source_path);
     if (!shader_source) {
         fprintf(stderr, "[ERROR] [SHADER] Failed to open shader source file!\n");
@@ -79,23 +79,23 @@ void shader_bind(Shader shader) {
     glUseProgram(shader);
 }
 
-void shader_set_mat4_uniform(GLuint uniform_location, mat4 value) {
+void shader_set_mat4_uniform(GLint uniform_location, mat4 value) {
     glUniformMatrix4fv(uniform_location, 1, GL_FALSE, *value);
 }
 
-void shader_set_vec3_uniform(GLuint uniform_location, vec3 value) {
+void shader_set_vec3_uniform(GLint uniform_location, vec3 value) {
     glUniform3fv(uniform_location, 1, value);
 }
 
-void shader_set_float_uniform(GLuint uniform_location, GLfloat value) {
+void shader_set_float_uniform(GLint uniform_location, GLfloat value) {
     glUniform1f(uniform_location, value);
 }
 
-void shader_set_int_uniform(GLuint uniform_location, GLint value) {
+void shader_set_int_uniform(GLint uniform_location, GLint value) {
     glUniform1i(uniform_location, value);
 }
 
-void shader_unbind() {
+void shader_unbind(void) {
     glUseProgram(0);
 }
 

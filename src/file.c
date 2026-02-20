@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "base-types.h"
+
 const char* file_open(const char* file_path) {
     FILE* file = fopen(file_path, "r");
     if (!file) {
@@ -11,7 +13,7 @@ const char* file_open(const char* file_path) {
     }
 
     fseek(file, 0, SEEK_END);
-    int file_length = ftell(file);
+    usize file_length = (usize) ftell(file);
     fseek(file, 0, SEEK_SET);
 
     char* string = (char*) malloc(file_length + 1); // +1 for '\0'
@@ -21,7 +23,7 @@ const char* file_open(const char* file_path) {
         return NULL;
     }
 
-    unsigned int bytes_read = fread(string, 1, file_length, file);
+    usize bytes_read = fread(string, 1, file_length, file);
     if (bytes_read != file_length) {
         fprintf(stderr, "[ERROR] [File] Failed to read entire file!\n");
         free(string);

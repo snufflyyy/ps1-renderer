@@ -21,8 +21,8 @@ typedef struct Window {
 Window* window_create(u32 width, u32 height, const char* title);
 void window_update(Window* window);
 void window_event(Window* window, SDL_Event* event);
-void window_set_clear_color(Window* window, float red, float green, float blue);
-void window_clear(Window* window);
-void window_resize(Window* window, u32 new_width, u32 new_height);
+void window_set_clear_color(float red, float green, float blue);
+void window_clear(void);
+void window_resize(u32 new_width, u32 new_height);
 void window_get_size(Window* window, u32* width, u32* height);
 void window_destroy(Window* window);

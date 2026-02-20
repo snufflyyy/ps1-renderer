@@ -1,3 +1,3 @@
 ./build.sh
 cd build
-./SeaChess
+./PS1-Renderer

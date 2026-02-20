@@ -3,6 +3,7 @@
 #include <cglm/cglm.h>
 
 typedef struct Vertex {
-    vec2 position;
+	vec3 position;
+    vec3 normal;
     vec2 texture_coords;
 } Vertex;

@@ -10,7 +10,7 @@
 #include "freetype/ftimage.h"
 #include "shader.h"
 #include "texture.h"
-#include "camera.h"
+//#include "camera.h"
 #include "vertex.h"
 
 FontManager font_manager_create() {
@@ -71,6 +71,7 @@ Font font_create(FontManager* font_manager, u32 size, const char* path) {
 	return font;
 }
 
+/*
 void text_draw(Camera* camera, Font* font, FontManager* font_manager, vec2 position, float scale, const char* text) {
     usize text_length = strlen(text);
 
@@ -145,6 +146,7 @@ void text_drawf(Camera* camera, Font* font, FontManager* font_manager, vec2 posi
     text_draw(camera, font, font_manager, position, scale, buffer);
 }
 
+*/
 void font_destroy(Font* font) {
     FT_Done_Face(font->face);
 

@@ -34,7 +34,7 @@ Window* window_create(u32 width, u32 height, const char* title) {
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
-   	window->sdl_window = SDL_CreateWindow(title, width, height, SDL_WINDOW_OPENGL/* | SDL_WINDOW_RESIZABLE*/);
+   	window->sdl_window = SDL_CreateWindow(title, (int) width, (int) height, SDL_WINDOW_OPENGL/* | SDL_WINDOW_RESIZABLE*/);
     if (!window->sdl_window) {
    		fprintf(stderr, "[ERROR] [WINDOW] Failed to create SDL window!\n");
     	SDL_Quit();
@@ -64,9 +64,6 @@ Window* window_create(u32 width, u32 height, const char* title) {
        	free(window);
        	return NULL;
     }
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glEnable(GL_MULTISAMPLE);
 
@@ -103,21 +100,21 @@ void window_event(Window* window, SDL_Event* event) {
     switch (event->type) {
         case SDL_EVENT_QUIT: { window->running = false; } break;
 		case SDL_EVENT_WINDOW_RESIZED: {
-			window_resize(window, event->window.data1, event->window.data2);
+			window_resize((u32) event->window.data1, (u32) event->window.data2);
 		} break;
     }
 }
 
-void window_set_clear_color(Window* window, float red, float green, float blue) {
+void window_set_clear_color(float red, float green, float blue) {
     glClearColor(red, green, blue, 1.0f);
 }
 
-void window_clear(Window* window) {
+void window_clear(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 }
 
-void window_resize(Window* window, u32 new_width, u32 new_height) {
-	glViewport(0, 0, new_width, new_height);
+void window_resize(u32 new_width, u32 new_height) {
+	glViewport(0, 0, (GLsizei) new_width, (GLsizei) new_height);
 	printf("[INFO] [WINDOW] Window Resized to %ux%u\n", new_width, new_height);
 }
 

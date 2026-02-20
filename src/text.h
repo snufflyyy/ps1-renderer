@@ -8,7 +8,7 @@
 #include "texture.h"
 #include "base-types.h"
 #include "shader.h"
-#include "camera.h"
+//#include "camera.h"
 
 typedef struct Character {
     Texture texture;
@@ -35,7 +35,7 @@ typedef struct FontManager {
 
 FontManager font_manager_create();
 Font font_create(FontManager* font_manager, u32 size, const char* path);
-void text_draw(Camera* camera, Font* font, FontManager* font_manager, vec2 position, float scale, const char* text);
-void text_drawf(Camera* camera, Font* font, FontManager* font_manager, vec2 position, float scale, const char* format, ...);
+//void text_draw(Camera* camera, Font* font, FontManager* font_manager, vec2 position, float scale, const char* text);
+//void text_drawf(Camera* camera, Font* font, FontManager* font_manager, vec2 position, float scale, const char* format, ...);
 void font_destroy(Font* font);
 void font_manager_destroy(FontManager* font_manager);
