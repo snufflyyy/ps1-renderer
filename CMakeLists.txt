@@ -31,13 +31,14 @@ add_executable(
 	src/file.c
 	src/shader.c
 	src/texture.c
+	src/camera.c
 	src/mesh.c
 	src/node.c
 	src/model.c
 	#src/text.c
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenGL_LIBRARIES} glad SDL3::SDL3 cglm freetype)
+target_link_libraries(${PROJECT_NAME} PRIVATE m ${OpenGL_LIBRARIES} glad SDL3::SDL3 cglm freetype)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
   -Wall -Wextra -Wpedantic

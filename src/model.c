@@ -1,19 +1,19 @@
-#include "cglm/mat4.h"
 #include <stdio.h>
+#include <string.h>
 
-#include <cglm/cglm.h>
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
+#include <cglm/cglm.h>
 
 #include "model.h"
 #include "texture.h"
 #include "node.h"
 #include "mesh.h"
 
-static const cgltf_accessor* find_attribute(const cgltf_primitive* prim, cgltf_attribute_type type) {
- 	for (cgltf_size i = 0; i < prim->attributes_count; i++) {
-        if (prim->attributes[i].type == type) {
-            return prim->attributes[i].data;
+static const cgltf_accessor* find_attribute(const cgltf_primitive* primitive, cgltf_attribute_type type) {
+ 	for (cgltf_size i = 0; i < primitive->attributes_count; i++) {
+        if (primitive->attributes[i].type == type) {
+            return primitive->attributes[i].data;
         }
     }
 
@@ -28,24 +28,24 @@ static usize node_count_recursive(cgltf_node* node) {
 	return count;
 }
 
-static void node_create_recursive(Node* nodes, usize nodes_length, usize* nodes_i, usize parent_i, cgltf_node* cgltf_node) {
-	if (*nodes_i >= nodes_length) {
+static void node_create_recursive(Model* model, usize* model_nodes_i, usize parent_i, cgltf_node* gltf_node) {
+	if (*model_nodes_i >= model->nodes_count) {
 		return;
 	}
 
-	nodes[*nodes_i].meshes = NULL;
-	nodes[*nodes_i].meshes_count = 0;
+	model->nodes[*model_nodes_i].meshes = NULL;
+	model->nodes[*model_nodes_i].meshes_count = 0;
 
-	if (cgltf_node->mesh) {
-	 	nodes[*nodes_i].meshes_count = cgltf_node->mesh->primitives_count;
-	  	nodes[*nodes_i].meshes = (Mesh*) malloc(sizeof(Mesh) * nodes[*nodes_i].meshes_count);
-	   	if (!nodes[*nodes_i].meshes) {
+	if (gltf_node->mesh) {
+	 	model->nodes[*model_nodes_i].meshes_count = gltf_node->mesh->primitives_count;
+	  	model->nodes[*model_nodes_i].meshes = (Mesh*) malloc(sizeof(Mesh) * model->nodes[*model_nodes_i].meshes_count);
+	   	if (!model->nodes[*model_nodes_i].meshes) {
 	    	fprintf(stderr, "[ERROR] [MODEL] Failed to allocate memory for meshes!\n");
 	  		return;
 	    }
 
-    	for (usize j = 0; j < nodes[*nodes_i].meshes_count; j++) {
-     		cgltf_primitive* cgltf_primitive = &cgltf_node->mesh->primitives[j];
+    	for (usize j = 0; j < model->nodes[*model_nodes_i].meshes_count; j++) {
+     		cgltf_primitive* cgltf_primitive = &gltf_node->mesh->primitives[j];
 
        		const cgltf_accessor* position_accessor = find_attribute(cgltf_primitive, cgltf_attribute_type_position);
 			const cgltf_accessor* normal_accessor = find_attribute(cgltf_primitive, cgltf_attribute_type_normal);
@@ -55,7 +55,7 @@ static void node_create_recursive(Node* nodes, usize nodes_length, usize* nodes_
      		Vertex* vertices = (Vertex*) malloc(sizeof(Vertex) * vertices_count);
        		if (!vertices) {
        			fprintf(stderr, "[ERROR] [MODEL] Failed to allocate memory for vertices!\n");
-        		free(nodes[*nodes_i].meshes);
+        		free(model->nodes[*model_nodes_i].meshes);
           		return;
         	}
 
@@ -74,30 +74,64 @@ static void node_create_recursive(Node* nodes, usize nodes_length, usize* nodes_
           	if (!indices) {
          		fprintf(stderr, "[ERROR] [MODEL] Failed to allocate memory for indices!\n");
           		free(vertices);
-           		free(nodes[*nodes_i].meshes);
+           		free(model->nodes[*model_nodes_i].meshes);
             	return;
            	}
 
-           for (usize k = 0; k < indices_count; k++) {
+            for (usize k = 0; k < indices_count; k++) {
          		indices[k] = (GLuint) cgltf_accessor_read_index(indices_accessor, k);
-           }
+            }
 
-           nodes[*nodes_i].meshes[j] = mesh_create(vertices, vertices_count, indices, indices_count, 0);
+            bool found = false;
+            Texture texture = 0;
+            for (usize i = 0; i < model->loaded_textures_count; i++) {
+                if (found) { break; }
+
+                if (!cgltf_primitive->material->pbr_metallic_roughness.base_color_texture.texture) { continue; }
+
+                if (strncmp(model->loaded_textures[i].path, cgltf_primitive->material->pbr_metallic_roughness.base_color_texture.texture->image->uri, MAX_LOADED_TEXTURE_PATH) == 0) {
+                    texture = model->loaded_textures[i].texture;
+                    found = true;
+                }
+            }
+
+            if (!found && cgltf_primitive->material->pbr_metallic_roughness.base_color_texture.texture) {
+                char path[MAX_LOADED_TEXTURE_PATH] = {0};
+                strncpy(path, model->root_path, strnlen(model->root_path, MAX_LOADED_TEXTURE_PATH));
+                strncat(path, cgltf_primitive->material->pbr_metallic_roughness.base_color_texture.texture->image->uri, strnlen(cgltf_primitive->material->pbr_metallic_roughness.base_color_texture.texture->image->uri, MAX_LOADED_TEXTURE_PATH));
+
+                texture = texture_create(path);
+
+                LoadedTexture* temp = realloc(model->loaded_textures, sizeof(LoadedTexture) * (model->loaded_textures_count + 1));
+                if (temp == NULL) {
+                    fprintf(stderr, "[ERROR] [MODEL] Failed to reallocate memory for loaded textures!\n");
+              		free(vertices);
+              		free(model->nodes[*model_nodes_i].meshes);
+                }
+                model->loaded_textures = temp;
+
+                model->loaded_textures[model->loaded_textures_count].texture = texture;
+                strncpy(model->loaded_textures[model->loaded_textures_count].path, cgltf_primitive->material->pbr_metallic_roughness.base_color_texture.texture->image->uri, MAX_LOADED_TEXTURE_PATH);
+
+                model->loaded_textures_count++;
+            }
+
+            model->nodes[*model_nodes_i].meshes[j] = mesh_create(vertices, vertices_count, indices, indices_count, texture);
      	}
 	}
 
 	mat4 local = GLM_MAT4_IDENTITY_INIT;
 
-	if (cgltf_node->has_matrix) {
-		memcpy(local, cgltf_node->matrix, sizeof(mat4));
+	if (gltf_node->has_matrix) {
+		memcpy(local, gltf_node->matrix, sizeof(mat4));
    	} else {
    		vec3 transform = GLM_VEC3_ZERO_INIT;
     	vec3 scale = GLM_VEC3_ONE_INIT;
     	versor rotation = GLM_QUAT_IDENTITY_INIT;
 
-     	if (cgltf_node->has_translation) { glm_vec3_copy(cgltf_node->translation, transform); }
-        if (cgltf_node->has_scale) { glm_vec3_copy(cgltf_node->scale, scale); }
-        if (cgltf_node->has_rotation) { glm_quat_copy(cgltf_node->rotation, rotation); }
+     	if (gltf_node->has_translation) { glm_vec3_copy(gltf_node->translation, transform); }
+        if (gltf_node->has_scale) { glm_vec3_copy(gltf_node->scale, scale); }
+        if (gltf_node->has_rotation) { glm_quat_copy(gltf_node->rotation, rotation); }
 
         mat4 T, R, S;
         glm_translate_make(T, transform);
@@ -109,20 +143,33 @@ static void node_create_recursive(Node* nodes, usize nodes_length, usize* nodes_
     }
 
 	if (parent_i != (usize) -1) {
-		glm_mat4_mul(nodes[parent_i].transform, local, local);
+		glm_mat4_mul(model->nodes[parent_i].transform, local, local);
 	}
 
-	glm_mat4_copy(local, nodes[*nodes_i].transform);
+	glm_mat4_copy(local, model->nodes[*model_nodes_i].transform);
 
-	usize current_i = *nodes_i;
-	(*nodes_i)++;
+	usize current_i = *model_nodes_i;
+	(*model_nodes_i)++;
 
-	for (usize i = 0; i < cgltf_node->children_count; i++) {
-		node_create_recursive(nodes, nodes_length, nodes_i, current_i, cgltf_node->children[i]);
+	for (usize i = 0; i < gltf_node->children_count; i++) {
+		node_create_recursive(model, model_nodes_i, current_i, gltf_node->children[i]);
 	}
 }
 
 Model model_create(const char* model_path) {
+    char* path_end = strstr(model_path, ".gltf");
+    if (!path_end) {
+        fprintf(stderr, "[ERROR] [MODEL] Model path is invalid: %s\n", model_path);
+    }
+
+    char* file_beginning = path_end;
+    while (*file_beginning != '/') {
+        file_beginning--;
+    }
+
+    Model model = {0};
+    strncpy(model.root_path, model_path, (u64) (file_beginning - model_path) + 1); // + 1 for '/'
+
     cgltf_options options = {0};
     cgltf_data* data = NULL;
     if (cgltf_parse_file(&options, model_path, &data) != cgltf_result_success) {
@@ -137,8 +184,6 @@ Model model_create(const char* model_path) {
     }
 
     cgltf_scene* scene = data->scene;
-
-    Model model = {0};
 
     usize nodes_total = 0;
     for (usize i = 0; i < scene->nodes_count; i++) {
@@ -156,7 +201,7 @@ Model model_create(const char* model_path) {
     usize nodes_i = 0;
     for (usize i = 0; i < scene->nodes_count; i++) {
     	cgltf_node* node = scene->nodes[i];
-    	node_create_recursive(model.nodes, model.nodes_count, &nodes_i, (usize) -1, node);
+    	node_create_recursive(&model, &nodes_i, (usize) -1, node);
     }
 
    	cgltf_free(data);
@@ -179,11 +224,11 @@ void model_destroy(Model* model) {
 		}
 	 	free(model->nodes);
 	}
-	if (model->textures) {
-		for (usize i = 0; i < model->textures_count; i++) {
-			texture_destroy(model->textures[i]);
+	if (model->loaded_textures) {
+		for (usize i = 0; i < model->loaded_textures_count; i++) {
+			texture_destroy(model->loaded_textures[i].texture);
 		}
-	 	free(model->textures);
+	 	free(model->loaded_textures);
 	}
-	model->textures_count = 0;
+	model->loaded_textures_count = 0;
 }

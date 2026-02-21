@@ -1,5 +1,4 @@
 #include "window.h"
-#include "SDL3/SDL_timer.h"
 #include "SDL3/SDL_video.h"
 
 #include <stdlib.h>
@@ -65,7 +64,11 @@ Window* window_create(u32 width, u32 height, const char* title) {
        	return NULL;
     }
 
+    SDL_SetWindowRelativeMouseMode(window->sdl_window, true);
+    SDL_SetWindowMouseGrab(window->sdl_window, true);
+
     glEnable(GL_MULTISAMPLE);
+    glEnable(GL_DEPTH_TEST);
 
     window->running = true;
 
@@ -110,7 +113,7 @@ void window_set_clear_color(float red, float green, float blue) {
 }
 
 void window_clear(void) {
-	glClear(GL_COLOR_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void window_resize(u32 new_width, u32 new_height) {

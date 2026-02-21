@@ -48,7 +48,9 @@ Mesh mesh_create(Vertex* vertices, usize number_of_vertices, GLuint* indices, us
 
 void mesh_draw(Mesh* mesh) {
     glBindVertexArray(mesh->vao);
+    texture_bind(GL_TEXTURE0, mesh->diffuse_texture);
     glDrawElements(GL_TRIANGLES, (GLsizei) mesh->number_of_indices, GL_UNSIGNED_INT, 0);
+    texture_unbind();
     glBindVertexArray(0);
 }
 

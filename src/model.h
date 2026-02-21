@@ -7,12 +7,20 @@
 #include "texture.h"
 #include "shader.h"
 
+#define MAX_LOADED_TEXTURE_PATH 512
+
+typedef struct LoadedTexture {
+    Texture texture;
+    char path[MAX_LOADED_TEXTURE_PATH];
+} LoadedTexture;
+
 typedef struct Model {
 	Node* nodes;
 	usize nodes_count;
 
-	Texture* textures;
-	usize textures_count;
+	LoadedTexture* loaded_textures;
+	usize loaded_textures_count;
+	char root_path[MAX_LOADED_TEXTURE_PATH];
 
 	mat4 transform;
 } Model;

@@ -34,6 +34,5 @@ const char* file_open(const char* file_path) {
 
     fclose(file);
 
-    printf("[INFO] [FILE] Loaded file into string!\n");
     return string;
 }
