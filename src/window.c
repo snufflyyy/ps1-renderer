@@ -53,7 +53,7 @@ Window* window_create(u32 width, u32 height, const char* title) {
     SDL_GL_MakeCurrent(window->sdl_window, window->gl_context);
 
     // vsync
-    SDL_GL_SetSwapInterval(1);
+    //SDL_GL_SetSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress)) {
   		fprintf(stderr, "[ERROR] [WINDOW] Failed load GLAD!\n");
@@ -67,7 +67,7 @@ Window* window_create(u32 width, u32 height, const char* title) {
     SDL_SetWindowRelativeMouseMode(window->sdl_window, true);
     SDL_SetWindowMouseGrab(window->sdl_window, true);
 
-    glEnable(GL_MULTISAMPLE);
+    //glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
 
     window->running = true;

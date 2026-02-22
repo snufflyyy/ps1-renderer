@@ -3,7 +3,6 @@
 #include <cglm/cglm.h>
 #include <stdbool.h>
 
-#include "SDL3/SDL_mouse.h"
 #include "model.h"
 #include "shader.h"
 #include "window.h"
@@ -28,7 +27,7 @@ int main(void) {
 	    }
 
 		window_update(window);
-		camera_update(&camera);
+		camera_update(&camera, window->delta_time);
 
 		window_clear();
 
