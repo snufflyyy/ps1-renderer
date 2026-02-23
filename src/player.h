@@ -5,13 +5,21 @@
 #include "camera.h"
 #include "window.h"
 
+#define PLAYER_GRAVITY (vec3) { 0.0f, -1.0f, 0.0f }
+#define PLAYER_WALK_SPEED 40.0f
+#define PLAYER_RUN_SPEED 55.0f
+
+#define PLAYER_GROUND_RESISTENCE 0.99f
+
 typedef struct Player {
     vec3 position;
+    vec3 velocity;
+    bool grounded;
+
     Camera camera;
 
     float movement_speed;
 
-    bool space_pressed;
     bool shift_pressed;
     bool w_pressed;
     bool a_pressed;

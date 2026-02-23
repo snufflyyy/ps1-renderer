@@ -17,13 +17,6 @@ typedef struct Camera {
 
     float pitch;
     float yaw;
-
-    bool space_pressed;
-    bool shift_pressed;
-    bool w_pressed;
-    bool a_pressed;
-    bool s_pressed;
-    bool d_pressed;
 } Camera;
 
 Camera camera_create(Window* window, vec3 position, float fov);
