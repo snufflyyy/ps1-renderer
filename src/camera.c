@@ -5,7 +5,6 @@
 #include <cglm/cglm.h>
 #include <stdbool.h>
 
-#include "SDL3/SDL_scancode.h"
 #include "cglm/vec3.h"
 #include "window.h"
 

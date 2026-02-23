@@ -32,6 +32,7 @@ add_executable(
 	src/shader.c
 	src/texture.c
 	src/camera.c
+	src/player.c
 	src/mesh.c
 	src/node.c
 	src/model.c

@@ -67,8 +67,9 @@ Window* window_create(u32 width, u32 height, const char* title) {
     SDL_SetWindowRelativeMouseMode(window->sdl_window, true);
     SDL_SetWindowMouseGrab(window->sdl_window, true);
 
-    //glEnable(GL_MULTISAMPLE);
+    glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     window->running = true;
 

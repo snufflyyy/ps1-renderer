@@ -29,6 +29,8 @@ int main(void) {
 		window_update(window);
 		camera_update(&camera, window->delta_time);
 
+		printf("FPS: %0.2f\n", window->fps);
+
 		window_clear();
 
 		shader_bind(shader);
