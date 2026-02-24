@@ -11,6 +11,7 @@ typedef struct Window {
 
 	bool running;
 	bool fullscreen;
+	bool mouse_captured;
 
 	u64 last_performance_counter;
 	double performance_frequency;
@@ -20,8 +21,9 @@ typedef struct Window {
 } Window;
 
 Window* window_create(u32 width, u32 height, const char* title);
-void window_update(Window* window);
 void window_event(Window* window, SDL_Event* event);
+void window_update(Window* window);
+void window_imgui_draw(Window* window);
 void window_set_clear_color(float red, float green, float blue);
 void window_clear(void);
 void window_resize(u32 new_width, u32 new_height);

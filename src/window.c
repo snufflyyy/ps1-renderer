@@ -1,10 +1,15 @@
 #include "window.h"
+#include "SDL3/SDL_scancode.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
+
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include <cimgui.h>
+#include <cimgui_impl.h>
 
 Window* window_create(u32 width, u32 height, const char* title) {
 	Window* window = (Window*) malloc(sizeof(Window));
@@ -19,7 +24,6 @@ Window* window_create(u32 width, u32 height, const char* title) {
 		return NULL;
 	}
 
-   	// MacOS supports up to OpenGL 4.1, Windows and Linux can use the latest OpenGL 4.6
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     #ifdef __APPLE__
    		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -32,7 +36,7 @@ Window* window_create(u32 width, u32 height, const char* title) {
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
-   	window->sdl_window = SDL_CreateWindow(title, (int) width, (int) height, SDL_WINDOW_OPENGL/* | SDL_WINDOW_RESIZABLE*/);
+   	window->sdl_window = SDL_CreateWindow(title, (int) width, (int) height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (!window->sdl_window) {
    		fprintf(stderr, "[ERROR] [WINDOW] Failed to create SDL window!\n");
     	SDL_Quit();
@@ -51,9 +55,6 @@ Window* window_create(u32 width, u32 height, const char* title) {
 
     SDL_GL_MakeCurrent(window->sdl_window, window->gl_context);
 
-    // vsync
-    SDL_GL_SetSwapInterval(1);
-
     if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress)) {
   		fprintf(stderr, "[ERROR] [WINDOW] Failed load GLAD!\n");
     	SDL_GL_DestroyContext(window->gl_context);
@@ -63,8 +64,9 @@ Window* window_create(u32 width, u32 height, const char* title) {
        	return NULL;
     }
 
-    SDL_SetWindowRelativeMouseMode(window->sdl_window, true);
-    SDL_SetWindowMouseGrab(window->sdl_window, true);
+    window->mouse_captured = true;
+    SDL_SetWindowRelativeMouseMode(window->sdl_window, window->mouse_captured);
+    SDL_SetWindowMouseGrab(window->sdl_window, window->mouse_captured);
 
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
@@ -78,25 +80,21 @@ Window* window_create(u32 width, u32 height, const char* title) {
     window->fps = 0.0f;
     window->delta_time = 0.0;
 
+    igCreateContext(NULL);
+    ImGuiIO* ioptr = igGetIO_Nil();
+    ioptr->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    ImGui_ImplSDL3_InitForOpenGL(window->sdl_window, window->gl_context);
+    ImGui_ImplOpenGL3_Init("#version 410 core");
+
     printf("[INFO] [WINDOW] Created Window:\n");
     printf("\tVideo Driver: %s\n", SDL_GetCurrentVideoDriver());
     printf("\tVender: %s\n", glGetString(GL_VENDOR));
     printf("\tRenderer: %s\n", glGetString(GL_RENDERER));
     printf("\tOpenGL Version: %s\n", glGetString(GL_VERSION));
     printf("\tGLSL Version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
 	return window;
-}
-
-void window_update(Window* window) {
-	SDL_GL_SwapWindow(window->sdl_window);
-
-	u64 performance_counter = SDL_GetPerformanceCounter();
-	window->delta_time = (double) (performance_counter - window->last_performance_counter) / window->performance_frequency;
-	window->last_performance_counter = performance_counter;
-
-	if (window->delta_time > 0.0) {
-	    window->fps = 1.0f / ((float) window->delta_time);
-	}
 }
 
 void window_event(Window* window, SDL_Event* event) {
@@ -108,6 +106,11 @@ void window_event(Window* window, SDL_Event* event) {
                     SDL_SetWindowFullscreen(window->sdl_window, !window->fullscreen);
                     window->fullscreen = !window->fullscreen;
                 } break;
+                case SDL_SCANCODE_ESCAPE: {
+                    SDL_SetWindowRelativeMouseMode(window->sdl_window, !window->mouse_captured);
+                    SDL_SetWindowMouseGrab(window->sdl_window, !window->mouse_captured);
+                    window->mouse_captured = !window->mouse_captured;
+                } break;
                 default: break;
             }
         } break;
@@ -115,6 +118,30 @@ void window_event(Window* window, SDL_Event* event) {
 			window_resize((u32) event->window.data1, (u32) event->window.data2);
 		} break;
     }
+
+    if (!window->mouse_captured) { ImGui_ImplSDL3_ProcessEvent(event); }
+}
+
+void window_update(Window* window) {
+	SDL_GL_SwapWindow(window->sdl_window);
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    igNewFrame();
+
+	u64 performance_counter = SDL_GetPerformanceCounter();
+	window->delta_time = (double) (performance_counter - window->last_performance_counter) / window->performance_frequency;
+	window->last_performance_counter = performance_counter;
+
+	if (window->delta_time > 0.0) {
+	    window->fps = 1.0f / ((float) window->delta_time);
+	}
+}
+
+void window_imgui_draw(Window* window) {
+    igEndFrame();
+    igRender();
+    ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 }
 
 void window_set_clear_color(float red, float green, float blue) {
@@ -136,6 +163,9 @@ void window_get_size(Window* window, u32* width, u32* height) {
 
 void window_destroy(Window* window) {
 	window->running = false;
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    igDestroyContext(NULL);
  	SDL_GL_DestroyContext(window->gl_context);
    	SDL_DestroyWindow(window->sdl_window);
    	SDL_Quit();

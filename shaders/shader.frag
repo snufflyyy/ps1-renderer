@@ -9,8 +9,7 @@ uniform float far;
 uniform float near;
 
 uniform vec3 fog_color;
-uniform float fog_start;
-uniform float fog_end;
+uniform float fog_density;
 
 float linearize_depth(float depth) {
     float z = depth * 2.0 - 1.0;
@@ -20,7 +19,7 @@ float linearize_depth(float depth) {
 void main() {
     float depth = linearize_depth(gl_FragCoord.z);
 
-    float fog_factor = clamp((fog_end - depth) / (fog_end - fog_start), 0.0, 1.0);
+    float fog_factor = exp(-fog_density * depth);
 
     vec4 texture_color = texture(in_texture, in_texture_coords);
     if (texture_color.a <= 0.0) {

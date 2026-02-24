@@ -18,6 +18,8 @@ typedef struct Camera {
     float far;
     float near;
 
+    bool mouse_movement;
+
     float pitch;
     float yaw;
 } Camera;

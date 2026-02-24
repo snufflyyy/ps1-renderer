@@ -19,8 +19,16 @@ typedef struct Player {
     bool grounded;
 
     Camera camera;
+    float camera_height_offset;
+
+    float walk_speed;
+
+    bool can_run;
+    float run_speed;
 
     float movement_speed;
+
+    float jump_amount;
 
     bool space_pressed;
     bool shift_pressed;

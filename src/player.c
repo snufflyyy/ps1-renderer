@@ -9,11 +9,18 @@ Player player_create(vec3 position, Window* window) {
 
     glm_vec3_copy(position, player.position);
 
+    player.camera_height_offset = 1.0f;
+
     vec3 camera_position;
-    glm_vec3_copy((vec3) { position[0], position[1] + 1.0f, position[2] }, camera_position);
+    glm_vec3_copy((vec3) { position[0], position[1] + player.camera_height_offset, position[2] }, camera_position);
     player.camera = camera_create(window, camera_position, 75.0f);
 
-    player.movement_speed = PLAYER_WALK_SPEED;
+    player.walk_speed = PLAYER_WALK_SPEED;
+    player.run_speed = PLAYER_RUN_SPEED;
+    player.can_run = true;
+
+    player.movement_speed = player.walk_speed;
+    player.jump_amount = PLAYER_JUMP_AMOUNT;
 
     return player;
 }
@@ -84,11 +91,14 @@ void player_update(Player* player, double delta_time) {
 
     if (player->grounded) {
         if (player->space_pressed) {
-            player->velocity[1] = PLAYER_JUMP_AMOUNT;
+            player->velocity[1] = player->jump_amount;
             player->space_pressed = false;
         }
 
-        player->movement_speed = (player->shift_pressed) ? PLAYER_RUN_SPEED : PLAYER_WALK_SPEED;
+        if (player->can_run) {
+            player->movement_speed = (player->shift_pressed) ? player->run_speed : player->walk_speed;
+        }
+
         if (glm_vec3_norm(move) > 0.0f) {
             glm_normalize(move);
             glm_vec3_scale(move, player->movement_speed * (float) delta_time, move);
@@ -113,7 +123,7 @@ void player_update(Player* player, double delta_time) {
 		player->grounded = false;
 	}
 
-    glm_vec3_copy((vec3) { player->position[0], player->position[1] + 1.0f, player->position[2] }, player->camera.position);
+    glm_vec3_copy((vec3) { player->position[0], player->position[1] + player->camera_height_offset, player->position[2] }, player->camera.position);
     camera_update(&player->camera);
 }
 
