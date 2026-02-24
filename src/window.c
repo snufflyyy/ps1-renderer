@@ -1,11 +1,13 @@
 #include "window.h"
 #include "SDL3/SDL_scancode.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
+#include <cglm/cglm.h>
 
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
@@ -73,6 +75,7 @@ Window* window_create(u32 width, u32 height, const char* title) {
     glEnable(GL_CULL_FACE);
 
     window->running = true;
+    window->fullscreen = false;
 
     window->last_performance_counter = SDL_GetPerformanceCounter();
     window->performance_frequency = (double) SDL_GetPerformanceFrequency();
@@ -144,8 +147,8 @@ void window_imgui_draw(Window* window) {
     ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 }
 
-void window_set_clear_color(float red, float green, float blue) {
-    glClearColor(red, green, blue, 1.0f);
+void window_set_clear_color(vec3 color) {
+    glClearColor(color[0], color[1], color[2], 1.0f);
 }
 
 void window_clear(void) {

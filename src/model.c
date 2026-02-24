@@ -33,18 +33,18 @@ static void node_create_recursive(Model* model, usize* model_nodes_i, usize pare
 		return;
 	}
 
-	model->nodes[*model_nodes_i].meshes = NULL;
-	model->nodes[*model_nodes_i].meshes_count = 0;
+	Mesh* meshes = NULL;
+	usize meshes_count = 0;
 
 	if (gltf_node->mesh) {
-	 	model->nodes[*model_nodes_i].meshes_count = gltf_node->mesh->primitives_count;
-	  	model->nodes[*model_nodes_i].meshes = (Mesh*) malloc(sizeof(Mesh) * model->nodes[*model_nodes_i].meshes_count);
-	   	if (!model->nodes[*model_nodes_i].meshes) {
+	 	meshes_count = gltf_node->mesh->primitives_count;
+	  	meshes = (Mesh*) malloc(sizeof(Mesh) * meshes_count);
+	   	if (!meshes) {
 	    	fprintf(stderr, "[ERROR] [MODEL] Failed to allocate memory for meshes!\n");
 	  		return;
 	    }
 
-    	for (usize j = 0; j < model->nodes[*model_nodes_i].meshes_count; j++) {
+    	for (usize j = 0; j < meshes_count; j++) {
      		cgltf_primitive* cgltf_primitive = &gltf_node->mesh->primitives[j];
 
        		const cgltf_accessor* position_accessor = find_attribute(cgltf_primitive, cgltf_attribute_type_position);
@@ -55,7 +55,7 @@ static void node_create_recursive(Model* model, usize* model_nodes_i, usize pare
      		Vertex* vertices = (Vertex*) malloc(sizeof(Vertex) * vertices_count);
        		if (!vertices) {
        			fprintf(stderr, "[ERROR] [MODEL] Failed to allocate memory for vertices!\n");
-        		free(model->nodes[*model_nodes_i].meshes);
+        		free(meshes);
           		return;
         	}
 
@@ -74,7 +74,7 @@ static void node_create_recursive(Model* model, usize* model_nodes_i, usize pare
           	if (!indices) {
          		fprintf(stderr, "[ERROR] [MODEL] Failed to allocate memory for indices!\n");
           		free(vertices);
-           		free(model->nodes[*model_nodes_i].meshes);
+           		free(meshes);
             	return;
            	}
 
@@ -106,7 +106,7 @@ static void node_create_recursive(Model* model, usize* model_nodes_i, usize pare
                 if (temp == NULL) {
                     fprintf(stderr, "[ERROR] [MODEL] Failed to reallocate memory for loaded textures!\n");
               		free(vertices);
-              		free(model->nodes[*model_nodes_i].meshes);
+              		free(model->nodes[*model_nodes_i]->meshes);
                 }
                 model->loaded_textures = temp;
 
@@ -116,7 +116,7 @@ static void node_create_recursive(Model* model, usize* model_nodes_i, usize pare
                 model->loaded_textures_count++;
             }
 
-            model->nodes[*model_nodes_i].meshes[j] = mesh_create(vertices, vertices_count, indices, indices_count, texture);
+            meshes[j] = mesh_create(vertices, vertices_count, indices, indices_count, texture);
      	}
 	}
 
@@ -143,10 +143,10 @@ static void node_create_recursive(Model* model, usize* model_nodes_i, usize pare
     }
 
 	if (parent_i != (usize) -1) {
-		glm_mat4_mul(model->nodes[parent_i].transform, local, local);
+		glm_mat4_mul(model->nodes[parent_i]->transform, local, local);
 	}
 
-	glm_mat4_copy(local, model->nodes[*model_nodes_i].transform);
+	model->nodes[*model_nodes_i] = node_create(meshes, meshes_count, local);
 
 	usize current_i = *model_nodes_i;
 	(*model_nodes_i)++;
@@ -191,7 +191,7 @@ Model model_create(const char* model_path) {
     }
     model.nodes_count = nodes_total;
 
-    model.nodes = (Node*) malloc(sizeof(Node) * model.nodes_count);
+    model.nodes = (Node**) malloc(sizeof(Node*) * model.nodes_count);
     if (!model.nodes) {
    		fprintf(stderr, "[ERROR] [MODEL] Failed to allocate memory for nodes!\n");
     	cgltf_free(data);
@@ -213,14 +213,14 @@ Model model_create(const char* model_path) {
 
 void model_draw(Model* model, Shader shader) {
 	for (usize i = 0; i < model->nodes_count; i++) {
-		node_draw(&model->nodes[i], model->transform, shader);
+		node_draw(model->nodes[i], model->transform, shader);
 	}
 }
 
 void model_destroy(Model* model) {
 	if (model->nodes) {
 		for (usize i = 0; i < model->nodes_count; i++) {
-			node_destroy(&model->nodes[i]);
+			node_destroy(model->nodes[i]);
 		}
 	 	free(model->nodes);
 	}

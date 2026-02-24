@@ -32,7 +32,11 @@ void node_draw(Node* node, mat4 parent_transform, Shader shader) {
 }
 
 void node_destroy(Node* node) {
-	for (usize i = 0; i < node->meshes_count; i++) {
-		mesh_destroy(&node->meshes[i]);
+	if (node->meshes) {
+        for (usize i = 0; i < node->meshes_count; i++) {
+            mesh_destroy(&node->meshes[i]);
+        }
+        free(node->meshes);
 	}
+	free(node);
 }

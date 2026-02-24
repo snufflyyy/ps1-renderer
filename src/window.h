@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
+#include <cglm/cglm.h>
 
 #include "base-types.h"
 
@@ -24,7 +25,7 @@ Window* window_create(u32 width, u32 height, const char* title);
 void window_event(Window* window, SDL_Event* event);
 void window_update(Window* window);
 void window_imgui_draw(Window* window);
-void window_set_clear_color(float red, float green, float blue);
+void window_set_clear_color(vec3 color);
 void window_clear(void);
 void window_resize(u32 new_width, u32 new_height);
 void window_get_size(Window* window, u32* width, u32* height);

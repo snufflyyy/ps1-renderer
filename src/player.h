@@ -18,15 +18,17 @@ typedef struct Player {
     vec3 velocity;
     bool grounded;
 
+    vec3 gravity;
+
     Camera camera;
     float camera_height_offset;
 
-    float walk_speed;
-
     bool can_run;
-    float run_speed;
+    bool can_jump;
 
     float movement_speed;
+    float walk_speed;
+    float run_speed;
 
     float jump_amount;
 

@@ -1,13 +1,16 @@
+#include <stdbool.h>
+#include <cglm/cglm.h>
+
 #include "player.h"
-#include "SDL3/SDL_scancode.h"
 #include "camera.h"
 #include "cglm/vec3.h"
-#include <stdbool.h>
 
 Player player_create(vec3 position, Window* window) {
     Player player = {0};
 
     glm_vec3_copy(position, player.position);
+
+    glm_vec3_copy(PLAYER_GRAVITY, player.gravity);
 
     player.camera_height_offset = 1.0f;
 
@@ -15,11 +18,13 @@ Player player_create(vec3 position, Window* window) {
     glm_vec3_copy((vec3) { position[0], position[1] + player.camera_height_offset, position[2] }, camera_position);
     player.camera = camera_create(window, camera_position, 75.0f);
 
+    player.can_run = true;
+    player.can_jump = true;
+
+    player.movement_speed = PLAYER_WALK_SPEED;
     player.walk_speed = PLAYER_WALK_SPEED;
     player.run_speed = PLAYER_RUN_SPEED;
-    player.can_run = true;
 
-    player.movement_speed = player.walk_speed;
     player.jump_amount = PLAYER_JUMP_AMOUNT;
 
     return player;
@@ -56,7 +61,7 @@ void player_event(Player* player, SDL_Event* event) {
 
 void player_update(Player* player, double delta_time) {
     vec3 delta_time_gravity;
-    glm_vec3_scale(PLAYER_GRAVITY, (float) delta_time, delta_time_gravity);
+    glm_vec3_scale(player->gravity, (float) delta_time, delta_time_gravity);
 	glm_vec3_add(player->velocity, delta_time_gravity, player->velocity);
 
     vec3 flat_front = { cosf(glm_rad(player->camera.yaw)), 0.0f, sinf(glm_rad(player->camera.yaw)) };
@@ -90,7 +95,7 @@ void player_update(Player* player, double delta_time) {
     }
 
     if (player->grounded) {
-        if (player->space_pressed) {
+        if (player->can_jump && player->space_pressed) {
             player->velocity[1] = player->jump_amount;
             player->space_pressed = false;
         }

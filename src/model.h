@@ -15,7 +15,7 @@ typedef struct LoadedTexture {
 } LoadedTexture;
 
 typedef struct Model {
-	Node* nodes;
+	Node** nodes;
 	usize nodes_count;
 
 	LoadedTexture* loaded_textures;
