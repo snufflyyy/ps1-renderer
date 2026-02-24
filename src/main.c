@@ -10,6 +10,7 @@
 
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
+#define WINDOW_CLEAR_COLOR (vec3) { 0.3f, 0.3f, 0.3f }
 
 int main(void) {
 	Window* window = window_create(WINDOW_WIDTH, WINDOW_HEIGHT, "PS1 Renderer");
@@ -19,7 +20,7 @@ int main(void) {
 
 	Player player = player_create((vec3) { 0.0f, 0.0f, 0.0f }, window);
 
-	window_set_clear_color(0.4f, 0.4f, 0.4f);
+	window_set_clear_color(WINDOW_CLEAR_COLOR[0], WINDOW_CLEAR_COLOR[1], WINDOW_CLEAR_COLOR[2]);
     while (window->running) {
     	SDL_Event event;
 	    while (SDL_PollEvent(&event)) {
@@ -33,8 +34,15 @@ int main(void) {
 		window_clear();
 
 		shader_bind(shader);
+
 		shader_set_mat4_uniform(glGetUniformLocation(shader, "view"), player.camera.view);
 		shader_set_mat4_uniform(glGetUniformLocation(shader, "projection"), player.camera.projection);
+		shader_set_float_uniform(glGetUniformLocation(shader, "far"), player.camera.far);
+		shader_set_float_uniform(glGetUniformLocation(shader, "near"), player.camera.near);
+
+		shader_set_vec3_uniform(glGetUniformLocation(shader, "fog_color"), WINDOW_CLEAR_COLOR);
+		shader_set_float_uniform(glGetUniformLocation(shader, "fog_start"), 1.0f);
+		shader_set_float_uniform(glGetUniformLocation(shader, "fog_end"), 25.0f);
 
 		model_draw(&school, shader);
     }

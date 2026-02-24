@@ -5,16 +5,20 @@
 #include <cglm/cglm.h>
 #include <stdbool.h>
 
+#include "cglm/cam.h"
 #include "cglm/vec3.h"
 #include "window.h"
 
 Camera camera_create(Window* window, vec3 position, float fov) {
     Camera camera = {0};
 
+    camera.far = 1000.0f;
+    camera.near = 0.1f;
+
     u32 window_width, window_height;
     window_get_size(window, &window_width, &window_height);
 
-    glm_perspective(glm_rad(fov), (float) window_width / (float) window_height, 0.1f, 1000.0f, camera.projection);
+    glm_perspective(glm_rad(fov), (float) window_width / (float) window_height, camera.near, camera.far, camera.projection);
     glm_mat4_identity(camera.view);
 
     glm_vec3_copy(position, camera.position);
@@ -48,10 +52,14 @@ void camera_event(Camera* camera, SDL_Event* event) {
             glm_normalize(direction);
             glm_vec3_copy(direction, camera->front);
         } break;
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
+            float aspect = (float) event->window.data1 / (float) event->window.data2;
+            glm_perspective(glm_rad(camera->fov), aspect, 0.1f, 1000.0f, camera->projection);
+        }
     }
 }
 
-void camera_update(Camera* camera, double delta_time) {
+void camera_update(Camera* camera) {
     vec3 center;
     glm_vec3_add(camera->position, camera->front, center);
     glm_lookat(camera->position, center, camera->up, camera->view);

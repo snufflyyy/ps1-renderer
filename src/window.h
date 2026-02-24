@@ -10,6 +10,7 @@ typedef struct Window {
 	SDL_GLContext gl_context;
 
 	bool running;
+	bool fullscreen;
 
 	u64 last_performance_counter;
 	double performance_frequency;

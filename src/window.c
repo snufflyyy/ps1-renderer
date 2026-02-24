@@ -1,5 +1,4 @@
 #include "window.h"
-#include "SDL3/SDL_video.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,7 +52,7 @@ Window* window_create(u32 width, u32 height, const char* title) {
     SDL_GL_MakeCurrent(window->sdl_window, window->gl_context);
 
     // vsync
-    //SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress)) {
   		fprintf(stderr, "[ERROR] [WINDOW] Failed load GLAD!\n");
@@ -92,7 +91,7 @@ void window_update(Window* window) {
 	SDL_GL_SwapWindow(window->sdl_window);
 
 	u64 performance_counter = SDL_GetPerformanceCounter();
-	window->delta_time = (performance_counter - window->last_performance_counter) / window->performance_frequency;
+	window->delta_time = (double) (performance_counter - window->last_performance_counter) / window->performance_frequency;
 	window->last_performance_counter = performance_counter;
 
 	if (window->delta_time > 0.0) {
@@ -103,6 +102,15 @@ void window_update(Window* window) {
 void window_event(Window* window, SDL_Event* event) {
     switch (event->type) {
         case SDL_EVENT_QUIT: { window->running = false; } break;
+        case SDL_EVENT_KEY_DOWN: {
+            switch (event->key.scancode) {
+                case SDL_SCANCODE_F11: {
+                    SDL_SetWindowFullscreen(window->sdl_window, !window->fullscreen);
+                    window->fullscreen = !window->fullscreen;
+                } break;
+                default: break;
+            }
+        } break;
 		case SDL_EVENT_WINDOW_RESIZED: {
 			window_resize((u32) event->window.data1, (u32) event->window.data2);
 		} break;
