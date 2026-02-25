@@ -12,6 +12,7 @@ typedef struct Window {
 
 	bool running;
 	bool fullscreen;
+	bool vsync;
 	bool mouse_captured;
 
 	u64 last_performance_counter;
@@ -25,6 +26,8 @@ Window* window_create(u32 width, u32 height, const char* title);
 void window_event(Window* window, SDL_Event* event);
 void window_update(Window* window);
 void window_imgui_draw(Window* window);
+void window_set_fullscreen(Window* window, bool value);
+void window_set_vsync(Window* window, bool value);
 void window_set_clear_color(vec3 color);
 void window_clear(void);
 void window_resize(u32 new_width, u32 new_height);

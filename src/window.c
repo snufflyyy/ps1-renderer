@@ -1,5 +1,6 @@
 #include "window.h"
 #include "SDL3/SDL_scancode.h"
+#include "SDL3/SDL_video.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -76,6 +77,7 @@ Window* window_create(u32 width, u32 height, const char* title) {
 
     window->running = true;
     window->fullscreen = false;
+    window->vsync = false;
 
     window->last_performance_counter = SDL_GetPerformanceCounter();
     window->performance_frequency = (double) SDL_GetPerformanceFrequency();
@@ -105,10 +107,7 @@ void window_event(Window* window, SDL_Event* event) {
         case SDL_EVENT_QUIT: { window->running = false; } break;
         case SDL_EVENT_KEY_DOWN: {
             switch (event->key.scancode) {
-                case SDL_SCANCODE_F11: {
-                    SDL_SetWindowFullscreen(window->sdl_window, !window->fullscreen);
-                    window->fullscreen = !window->fullscreen;
-                } break;
+                case SDL_SCANCODE_F11: { window_set_fullscreen(window, !window->fullscreen); } break;
                 case SDL_SCANCODE_ESCAPE: {
                     SDL_SetWindowRelativeMouseMode(window->sdl_window, !window->mouse_captured);
                     SDL_SetWindowMouseGrab(window->sdl_window, !window->mouse_captured);
@@ -145,6 +144,16 @@ void window_imgui_draw(Window* window) {
     igEndFrame();
     igRender();
     ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
+}
+
+void window_set_fullscreen(Window* window, bool value) {
+	SDL_SetWindowFullscreen(window->sdl_window, value);
+	window->fullscreen = value;
+}
+
+void window_set_vsync(Window* window, bool value) {
+	SDL_GL_SetSwapInterval((value) ? 1 : 0);
+	window->vsync = value;
 }
 
 void window_set_clear_color(vec3 color) {

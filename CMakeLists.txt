@@ -35,6 +35,7 @@ include_directories(
 add_executable(
 	${PROJECT_NAME}
 	src/main.c
+	src/game.c
 	src/window.c
 	src/file.c
 	src/shader.c
