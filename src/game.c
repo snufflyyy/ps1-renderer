@@ -1,12 +1,17 @@
 #include "game.h"
+#include "network/client/client.h"
 
 #include <cglm/cglm.h>
+#include <sys/socket.h>
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
 
-#include "model.h"
-#include "window.h"
+#include "gfx/model.h"
+#include "gfx/window.h"
+#include "gfx/shader.h"
+
 #include "player.h"
+#include "network/packet.h"
 
 static void game_event(Game* game, SDL_Event* event);
 
@@ -14,6 +19,8 @@ Game game_create(void) {
 	Game game = {0};
 
 	game.window = window_create(1280, 720, "PS1 Renderer");
+	game.client = client_create("127.0.0.1", "1126");
+
 	game.player = player_create((vec3) { 0.0f, 0.0f, 0.0f }, game.window);
 
 	game.school = model_create("../assets/school/scene.gltf");
@@ -31,23 +38,30 @@ Game game_create(void) {
 void game_update(Game* game) {
 	SDL_Event event;
  	while (SDL_PollEvent(&event)) { game_event(game, &event); }
+
  	window_update(game->window);
  	game->running = game->window->running;
+
+    client_update(game->client);
+
  	player_update(&game->player, game->window->delta_time);
 
 	if (game->show_debug_options) {
-    	igBegin("Debug Options", &game->show_debug_options, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
-            igText("Toggle debug options by pressing F10");
+    	igBegin("Debug Options (F10)", &game->show_debug_options, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
 	        igSeparatorText("Rendering");
 			igText("FPS: %0.2f", game->window->fps);
 			igText("Delta time: %f", game->window->delta_time);
-			if (igCheckbox("Fullscreen", &game->window->fullscreen)) { window_set_fullscreen(game->window, game->window->fullscreen); }
+			if (igCheckbox("Fullscreen (F11)", &game->window->fullscreen)) { window_set_fullscreen(game->window, game->window->fullscreen); }
 			if (igCheckbox("Vsync", &game->window->vsync)) { window_set_vsync(game->window, game->window->vsync); }
   		    igSeparatorText("World");
-            igColorEdit3("Sky Color", game->sky_color, ImGuiColorEditFlags_None);
+            if (igColorEdit3("Sky Color", game->sky_color, ImGuiColorEditFlags_None)) {
+                window_set_clear_color(game->sky_color);
+            }
       		igDragFloat("Fog Density", &game->fog_density, 0.001f, 0.0f, 1.0f, "%0.3f", ImGuiSliderFlags_None);
             igSeparatorText("Camera");
+            igText("Pitch: %0.2f\tYaw: %0.2f", game->player.camera.pitch, game->player.camera.yaw);
       		igDragFloat("Player Height Offset", &game->player.camera_height_offset, 0.01f, 0.0f, 5.0f, "%0.2f", ImGuiSliderFlags_None);
+            igDragFloat("Mouse Sensitivity", &game->player.camera.mouse_sensitivity, 0.001f, 0.0f, 10.0f, "%0.3f", ImGuiSliderFlags_None);
             if (igDragFloat("FOV", &game->player.camera.fov, 0.1f, 0.0f, 120.0f, "%0.2f", ImGuiSliderFlags_None)) {
                 u32 window_width, window_height;
                 window_get_size(game->window, &window_width, &window_height);
@@ -63,6 +77,42 @@ void game_update(Game* game) {
       		igDragFloat("Walk Speed", &game->player.walk_speed, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
       		igDragFloat("Run Speed", &game->player.run_speed, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
       		igDragFloat("Jump Amount", &game->player.jump_amount, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
+            igSeparatorText("Multiplayer");
+            if (igSmallButton("Send Handshake Packet")) {
+                Packet packet = {
+                    .header = {
+                        .type = PACKET_TYPE_HANDSHAKE,
+                        .data_size = 0,
+                    },
+                    .data = NULL,
+                };
+
+                client_send_packet(game->client, packet);
+
+                struct sockaddr_storage client_address;
+                socklen_t client_address_length = sizeof(struct sockaddr_storage);
+
+                u8 buffer[sizeof(PacketHeader) + PACKET_MAX_DATA_SIZE];
+                i64 bytes_received = recvfrom(game->client->socket, buffer, sizeof(buffer), 0, (struct sockaddr*) &client_address, &client_address_length);
+                if (bytes_received == -1) {
+                    fprintf(stderr, "[ERROR] [CLIENT] Failed to received message from client!\n");
+                    return;
+                }
+                if (bytes_received < (i64) sizeof(PacketHeader)) {
+                    fprintf(stderr, "[ERROR] [CLIENT] Packet received from client is too small!\n");
+                    return;
+                }
+
+                Packet received_packet = {0};
+
+                memcpy(&received_packet.header, buffer, sizeof(received_packet.header));
+                received_packet.data = buffer + sizeof(PacketHeader);
+
+                u32 client_id;
+                memcpy(&client_id, received_packet.data, sizeof(u32));
+
+                printf("client id: %u\n", client_id);
+            }
   		igEnd();
 	}
 }
@@ -82,7 +132,6 @@ static void game_event(Game* game, SDL_Event* event) {
 }
 
 void game_draw(Game* game) {
-	window_set_clear_color(game->sky_color);
 	window_clear();
 
 	shader_bind(game->school_shader);
@@ -93,6 +142,9 @@ void game_draw(Game* game) {
 	shader_set_vec3_uniform(glGetUniformLocation(game->school_shader, "fog_color"), game->sky_color);
 	shader_set_float_uniform(glGetUniformLocation(game->school_shader, "fog_density"), game->fog_density);
 	model_draw(&game->school, game->school_shader);
+
+	shader_unbind();
+
 	window_imgui_draw(game->window);
 }
 
@@ -100,5 +152,6 @@ void game_destroy(Game* game) {
     shader_destroy(game->school_shader);
     model_destroy(&game->school);
 	player_destroy(&game->player);
+	client_destroy(game->client);
     window_destroy(game->window);
 }

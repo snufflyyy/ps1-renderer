@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 
 #include "vertex.h"
-#include "base-types.h"
+#include "utils/base-types.h"
 #include "texture.h"
 
 typedef struct Mesh {

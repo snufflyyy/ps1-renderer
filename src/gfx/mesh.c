@@ -1,9 +1,9 @@
-#include "mesh.h"
+#include "gfx/mesh.h"
 #include "vertex.h"
 
 #include <glad/glad.h>
 
-#include "base-types.h"
+#include "utils/base-types.h"
 #include "texture.h"
 
 Mesh mesh_create(Vertex* vertices, usize vertices_count, GLuint* indices, usize indices_count, Texture diffuse_texture) {
@@ -29,15 +29,12 @@ Mesh mesh_create(Vertex* vertices, usize vertices_count, GLuint* indices, usize 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, (u32) mesh.indices_count * sizeof(GLuint), &mesh.indices[0], GL_STATIC_DRAW);
 
-    // position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) 0);
     glEnableVertexAttribArray(0);
 
-    // normal
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vertex, normal));
     glEnableVertexAttribArray(1);
 
-    // texture coord
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vertex, texture_coords));
     glEnableVertexAttribArray(2);
 

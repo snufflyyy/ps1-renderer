@@ -3,7 +3,12 @@
 #include <SDL3/SDL.h>
 #include <cglm/cglm.h>
 
-#include "window.h"
+#include "gfx/window.h"
+
+#define CAMERA_DEFAULT_FAR 1000.0f
+#define CAMERA_DEFAULT_NEAR 0.01f
+
+#define CAMERA_DEFAULT_MOUSE_SENSITIVITY 0.1f
 
 typedef struct Camera {
     mat4 projection;
@@ -19,6 +24,7 @@ typedef struct Camera {
     float near;
 
     bool mouse_movement;
+    float mouse_sensitivity;
 
     float pitch;
     float yaw;

@@ -1,4 +1,4 @@
-#include "node.h"
+#include "gfx/node.h"
 #include "cglm/mat4.h"
 #include "mesh.h"
 #include "shader.h"

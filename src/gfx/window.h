@@ -4,7 +4,7 @@
 #include <SDL3/SDL.h>
 #include <cglm/cglm.h>
 
-#include "base-types.h"
+#include "utils/base-types.h"
 
 typedef struct Window {
 	SDL_Window* sdl_window;

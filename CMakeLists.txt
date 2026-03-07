@@ -25,9 +25,10 @@ option(CGLM_USE_C99 "" ON)
 option(CGLM_USE_TEST "Enable Tests" OFF)
 add_subdirectory(external/cglm)
 
-add_subdirectory(external/freetype)
+#add_subdirectory(external/freetype)
 
 include_directories(
+    src
 	external/cgltf/include
 	external/stb_image/include
 )
@@ -36,17 +37,21 @@ add_executable(
 	${PROJECT_NAME}
 	src/main.c
 	src/game.c
-	src/window.c
-	src/file.c
-	src/shader.c
-	src/texture.c
 	src/camera.c
+	src/cube.c
 	src/player.c
-	src/mesh.c
-	src/node.c
-	src/model.c
-	#src/text.c
 
+	src/utils/file.c
+
+	src/gfx/window.c
+	src/gfx/shader.c
+	src/gfx/texture.c
+	src/gfx/mesh.c
+	src/gfx/node.c
+	src/gfx/model.c
+
+	src/network/server/server.c
+	src/network/client/client.c
 
     external/cimgui/imgui/backends/imgui_impl_sdl3.cpp
     external/cimgui/imgui/backends/imgui_impl_opengl3.cpp
@@ -54,7 +59,8 @@ add_executable(
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DCIMGUI_USE_OPENGL3 -DCIMGUI_USE_SDL3)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE m ${OpenGL_LIBRARIES} glad SDL3::SDL3 cimgui cglm freetype)
+target_link_libraries(${PROJECT_NAME} PRIVATE m ${OpenGL_LIBRARIES} glad SDL3::SDL3 cimgui cglm #freetype
+)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
   -Wall -Wextra -Wpedantic

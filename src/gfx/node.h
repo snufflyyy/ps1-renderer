@@ -3,7 +3,7 @@
 #include <cglm/cglm.h>
 
 #include "mesh.h"
-#include "base-types.h"
+#include "utils/base-types.h"
 #include "shader.h"
 
 typedef struct Node {

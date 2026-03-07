@@ -1,4 +1,4 @@
-#include "window.h"
+#include "gfx/window.h"
 #include "SDL3/SDL_scancode.h"
 #include "SDL3/SDL_video.h"
 

@@ -1,15 +1,19 @@
 #pragma once
 
-#include "window.h"
+#include <cglm/cglm.h>
+
+#include "gfx/window.h"
+#include "network/client/client.h"
 #include "player.h"
-#include "model.h"
-#include "shader.h"
+#include "gfx/model.h"
+#include "gfx/shader.h"
 
 #define GAME_DEFAULT_SKY_COLOR (vec3) { 0.3f, 0.3f, 0.3f }
 #define GAME_DEFAULT_FOG_DENSITY 0.1f
 
 typedef struct Game {
 	Window* window;
+	Client* client;
 
 	Player player;
 

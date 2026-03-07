@@ -5,7 +5,7 @@
 
 #include <glad/glad.h>
 
-#include "file.h"
+#include "utils/file.h"
 
 static GLuint shader_create_module(const char* shader_source_path, GLenum shader_type);
 

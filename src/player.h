@@ -3,20 +3,26 @@
 #include <SDL3/SDL.h>
 
 #include "camera.h"
-#include "window.h"
+#include "gfx/window.h"
+#include "cube.h"
 
-#define PLAYER_GRAVITY (vec3) { 0.0f, -25.0f, 0.0f }
+#define PLAYER_DEFAULT_FOV 75.0f
+#define PLAYER_DEFAULT_CAMERA_HEIGHT_OFFSET 1.0f
 
-#define PLAYER_WALK_SPEED 25.0f
-#define PLAYER_RUN_SPEED 50.0f
-#define PLAYER_JUMP_AMOUNT 5.0f
+#define PLAYER_DEFAULT_GRAVITY (vec3) { 0.0f, -25.0f, 0.0f }
 
-#define PLAYER_MOVEMENT_DAMPING 0.95f
+#define PLAYER_DEFAULT_WALK_SPEED 25.0f
+#define PLAYER_DEFAULT_RUN_SPEED 50.0f
+#define PLAYER_DEFAULT_JUMP_AMOUNT 5.0f
+
+#define PLAYER_DEFAULT_MOVEMENT_DAMPING 0.95f
 
 typedef struct Player {
     vec3 position;
     vec3 velocity;
     bool grounded;
+
+    Cube cube;
 
     vec3 gravity;
 

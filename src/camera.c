@@ -7,13 +7,13 @@
 
 #include "cglm/cam.h"
 #include "cglm/vec3.h"
-#include "window.h"
+#include "gfx/window.h"
 
 Camera camera_create(Window* window, vec3 position, float fov) {
     Camera camera = {0};
 
-    camera.far = 1000.0f;
-    camera.near = 0.1f;
+    camera.far = CAMERA_DEFAULT_FAR;
+    camera.near = CAMERA_DEFAULT_NEAR;
 
     u32 window_width, window_height;
     window_get_size(window, &window_width, &window_height);
@@ -28,6 +28,7 @@ Camera camera_create(Window* window, vec3 position, float fov) {
     glm_vec3_copy((vec3) { 0.0f, 1.0f, 0.0f }, camera.up);
 
     camera.mouse_movement = true;
+    camera.mouse_sensitivity = CAMERA_DEFAULT_MOUSE_SENSITIVITY;
 
     return camera;
 }
@@ -36,14 +37,8 @@ void camera_event(Camera* camera, SDL_Event* event) {
     switch (event->type) {
         case SDL_EVENT_MOUSE_MOTION: {
             if (camera->mouse_movement) {
-
-                float x_motion = event->motion.xrel;
-                float y_motion = -event->motion.yrel;
-
-                const float sensitivity = 0.1f;
-
-                camera->yaw += (x_motion * sensitivity);
-                camera->pitch += (y_motion * sensitivity);
+                camera->yaw += (event->motion.xrel * camera->mouse_sensitivity);
+                camera->pitch += (-event->motion.yrel * camera->mouse_sensitivity);
 
                 if (camera->pitch > 89.0f) { camera->pitch = 89.0f; }
                 if (camera->pitch < -89.0f) { camera->pitch = -89.0f; }
@@ -67,7 +62,7 @@ void camera_event(Camera* camera, SDL_Event* event) {
         } break;
         case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
             float aspect = (float) event->window.data1 / (float) event->window.data2;
-            glm_perspective(glm_rad(camera->fov), aspect, 0.1f, 1000.0f, camera->projection);
+            glm_perspective(glm_rad(camera->fov), aspect, camera->near, camera->far, camera->projection);
         }
     }
 }

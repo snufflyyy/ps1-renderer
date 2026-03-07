@@ -3,29 +3,35 @@
 
 #include "player.h"
 #include "camera.h"
+#include "cglm/affine-pre.h"
+#include "cglm/affine.h"
+#include "cglm/mat4.h"
 #include "cglm/vec3.h"
+#include "cube.h"
 
 Player player_create(vec3 position, Window* window) {
     Player player = {0};
 
     glm_vec3_copy(position, player.position);
 
-    glm_vec3_copy(PLAYER_GRAVITY, player.gravity);
+    glm_vec3_copy(PLAYER_DEFAULT_GRAVITY, player.gravity);
 
-    player.camera_height_offset = 1.0f;
+    player.camera_height_offset = PLAYER_DEFAULT_CAMERA_HEIGHT_OFFSET;
 
     vec3 camera_position;
     glm_vec3_copy((vec3) { position[0], position[1] + player.camera_height_offset, position[2] }, camera_position);
-    player.camera = camera_create(window, camera_position, 75.0f);
+    player.camera = camera_create(window, camera_position, PLAYER_DEFAULT_FOV);
 
     player.can_run = true;
     player.can_jump = true;
 
-    player.movement_speed = PLAYER_WALK_SPEED;
-    player.walk_speed = PLAYER_WALK_SPEED;
-    player.run_speed = PLAYER_RUN_SPEED;
+    player.movement_speed = PLAYER_DEFAULT_WALK_SPEED;
+    player.walk_speed = PLAYER_DEFAULT_WALK_SPEED;
+    player.run_speed = PLAYER_DEFAULT_RUN_SPEED;
 
-    player.jump_amount = PLAYER_JUMP_AMOUNT;
+    player.jump_amount = PLAYER_DEFAULT_JUMP_AMOUNT;
+
+    player.cube = cube_create("../assets/container.jpg");
 
     return player;
 }
@@ -110,7 +116,7 @@ void player_update(Player* player, double delta_time) {
             glm_vec3_add(player->velocity, move, player->velocity);
         }
 
-        float damping = powf(PLAYER_MOVEMENT_DAMPING, (float) delta_time * 240.0f);
+        float damping = powf(PLAYER_DEFAULT_MOVEMENT_DAMPING, (float) delta_time * 240.0f);
     	player->velocity[0] *= damping;
      	player->velocity[2] *= damping;
     }
@@ -130,6 +136,11 @@ void player_update(Player* player, double delta_time) {
 
     glm_vec3_copy((vec3) { player->position[0], player->position[1] + player->camera_height_offset, player->position[2] }, player->camera.position);
     camera_update(&player->camera);
+
+    glm_mat4_identity(player->cube.transform);
+    glm_scale(player->cube.transform, (vec3) { 1.0f, player->camera_height_offset, 1.0f });
+    glm_translate(player->cube.transform, (vec3) { player->position[0], player->position[1] + 0.5f, player->position[2] });
+    cube_update(&player->cube);
 }
 
 void player_destroy(Player* player) {

@@ -3,15 +3,15 @@
 #include <cglm/cglm.h>
 
 #include "node.h"
-#include "base-types.h"
+#include "utils/base-types.h"
 #include "texture.h"
 #include "shader.h"
 
-#define MAX_LOADED_TEXTURE_PATH 512
+#define MODEL_MAX_LOADED_TEXTURE_PATH 512
 
 typedef struct LoadedTexture {
     Texture texture;
-    char path[MAX_LOADED_TEXTURE_PATH];
+    char path[MODEL_MAX_LOADED_TEXTURE_PATH];
 } LoadedTexture;
 
 typedef struct Model {
@@ -20,7 +20,7 @@ typedef struct Model {
 
 	LoadedTexture* loaded_textures;
 	usize loaded_textures_count;
-	char root_path[MAX_LOADED_TEXTURE_PATH];
+	char root_path[MODEL_MAX_LOADED_TEXTURE_PATH];
 
 	mat4 transform;
 } Model;
