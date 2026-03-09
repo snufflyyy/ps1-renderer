@@ -50,6 +50,7 @@ add_executable(
 	src/gfx/node.c
 	src/gfx/model.c
 
+	src/network/packet.c
 	src/network/server/server.c
 	src/network/client/client.c
 

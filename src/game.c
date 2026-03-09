@@ -78,41 +78,8 @@ void game_update(Game* game) {
       		igDragFloat("Run Speed", &game->player.run_speed, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
       		igDragFloat("Jump Amount", &game->player.jump_amount, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
             igSeparatorText("Multiplayer");
-            if (igSmallButton("Send Handshake Packet")) {
-                Packet packet = {
-                    .header = {
-                        .type = PACKET_TYPE_HANDSHAKE,
-                        .data_size = 0,
-                    },
-                    .data = NULL,
-                };
-
-                client_send_packet(game->client, packet);
-
-                struct sockaddr_storage client_address;
-                socklen_t client_address_length = sizeof(struct sockaddr_storage);
-
-                u8 buffer[sizeof(PacketHeader) + PACKET_MAX_DATA_SIZE];
-                i64 bytes_received = recvfrom(game->client->socket, buffer, sizeof(buffer), 0, (struct sockaddr*) &client_address, &client_address_length);
-                if (bytes_received == -1) {
-                    fprintf(stderr, "[ERROR] [CLIENT] Failed to received message from client!\n");
-                    return;
-                }
-                if (bytes_received < (i64) sizeof(PacketHeader)) {
-                    fprintf(stderr, "[ERROR] [CLIENT] Packet received from client is too small!\n");
-                    return;
-                }
-
-                Packet received_packet = {0};
-
-                memcpy(&received_packet.header, buffer, sizeof(received_packet.header));
-                received_packet.data = buffer + sizeof(PacketHeader);
-
-                u32 client_id;
-                memcpy(&client_id, received_packet.data, sizeof(u32));
-
-                printf("client id: %u\n", client_id);
-            }
+            igText("Connected: %s", (game->client->connected) ? "Yes" : "No");
+            if (igSmallButton("Connect to Server")) { client_connect(game->client); }
   		igEnd();
 	}
 }

@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <netdb.h>
@@ -50,9 +51,32 @@ Server* server_create(const char* port) {
     server->client_handlers_length = 0;
     server->running = true;
 
-    printf("[INFO] [SERVER] Created Server!\n");
+    server->packet_queue = packet_queue_create();
+
+    printf("[INFO] [SERVER] Created Server at port: %s\n", port);
 
     return server;
+}
+
+PacketStorage server_receive_packet(Server* server, struct sockaddr_storage* client_address, socklen_t* client_address_length) {
+    *client_address_length = sizeof(*client_address);
+
+    PacketStorage result = {0};
+
+    i64 bytes_received = recvfrom(server->socket, result.buffer, sizeof(result.buffer), 0, (struct sockaddr*) client_address, client_address_length);
+    if (bytes_received == -1) {
+        fprintf(stderr, "[ERROR] [SERVER] Failed to received message from client!\n");
+    }
+    if (bytes_received < (i64) sizeof(PacketHeader)) {
+        fprintf(stderr, "[ERROR] [SERVER] Packet received from client is too small!\n");
+    }
+
+    memcpy(&result.packet.header, result.buffer, sizeof(result.packet.header));
+    if (result.packet.header.data_size > 0) {
+        memcpy(&result.packet.data, result.buffer + sizeof(result.packet.header), result.packet.header.data_size);
+    }
+
+    return result;
 }
 
 void server_send_packet(Server* server, u32 client_id, Packet packet) {
@@ -63,63 +87,49 @@ void server_send_packet(Server* server, u32 client_id, Packet packet) {
 
     u8 buffer[sizeof(PacketHeader) + PACKET_MAX_DATA_SIZE];
     memcpy(buffer, &packet.header, sizeof(PacketHeader));
-    if (packet.header.data_size > 0) {
-        memcpy(buffer + sizeof(PacketHeader), packet.data, packet.header.data_size);
-    }
+    if (packet.header.data_size > 0) { memcpy(buffer + sizeof(PacketHeader), packet.data, packet.header.data_size); }
 
-    if (sendto(server->socket, &buffer, sizeof(PacketHeader) + packet.header.data_size, 0, (const struct sockaddr*) &server->client_handlers[client_id].address, sizeof(struct sockaddr_storage)) == -1) {
-        fprintf(stderr, "[ERROR] [SERVER] Failed to send message to server!\n");
+    if (sendto(server->socket, &buffer, sizeof(PacketHeader) + packet.header.data_size, 0, (const struct sockaddr*) &server->client_handlers[client_id].address, server->client_handlers[client_id].address_length) == -1) {
+        fprintf(stderr, "[ERROR] [SERVER] Failed to send message to client!\n");
     }
 }
 
 void server_update(Server* server) {
-    struct sockaddr_storage client_address;
-    socklen_t client_address_length = sizeof(struct sockaddr_storage);
+	struct sockaddr_storage client_address;
+	socklen_t client_address_length;
 
-    u8 buffer[sizeof(PacketHeader) + PACKET_MAX_DATA_SIZE];
-    i64 bytes_received = recvfrom(server->socket, buffer, sizeof(buffer), 0, (struct sockaddr*) &client_address, &client_address_length);
-    if (bytes_received == -1) {
-        fprintf(stderr, "[ERROR] [SERVER] Failed to received message from client!\n");
-        return;
-    }
-    if (bytes_received < (i64) sizeof(PacketHeader)) {
-        fprintf(stderr, "[ERROR] [SERVER] Packet received from client is too small!\n");
-        return;
-    }
+	PacketStorage client_packet = server_receive_packet(server, &client_address, &client_address_length);
 
-    Packet packet = {0};
-
-    memcpy(&packet.header, buffer, sizeof(packet.header));
-    if (packet.header.data_size > 0) {
-        memcpy(&packet.data, buffer + sizeof(packet.header), packet.header.data_size);
-    }
-
-    char host[NI_MAXHOST];
-    if (getnameinfo((const struct sockaddr*) &client_address, client_address_length, host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST | NI_NUMERICSERV) == -1) {
+    char client_address_string[NI_MAXHOST];
+    if (getnameinfo((const struct sockaddr*) &client_address, client_address_length, client_address_string, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == -1) {
         fprintf(stderr, "[ERROR] [SERVER] Failed to convert client ip into string!\n");
     }
 
-    switch (packet.header.type) {
-        case PACKET_TYPE_PING: printf("[%s] Ping Received: %0.2fms\n", host, 0.0f); break;
-        case PACKET_TYPE_HANDSHAKE: {
-            printf("[%s] Handshake Received!\n", host);
-            server->client_handlers[server->client_handlers_length] = (ClientHandler) { client_address, (u32) server->client_handlers_length };
-
-            u8 sending_buffer[sizeof(u32)];
-            memcpy(sending_buffer, &server->client_handlers_length, sizeof(u32));
-
-            printf("sending client id: %lu...\n", server->client_handlers_length);
+    switch (client_packet.packet.header.type) {
+        case PACKET_TYPE_PING: printf("[INFO] [SERVER] [%s] Ping received\n", client_address_string); break;
+        case PACKET_TYPE_NEW_CONNECTION: {
+            server->client_handlers[server->client_handlers_length] = (ClientHandler) {
+            	.address = client_address,
+             	.address_length = client_address_length,
+              	.connected = false,
+               	.id = (u32) server->client_handlers_length
+            };
 
             Packet client_handshake_packet = {
                 .header = {
                     .type = PACKET_TYPE_HANDSHAKE,
-                    .data_size = sizeof(u32),
+                    .sender_id = (u32) server->client_handlers_length,
+                    .data_size = 0,
                 },
-                .data = sending_buffer,
+                .data = NULL,
             };
 
             server_send_packet(server, (u32) server->client_handlers_length, client_handshake_packet);
 
+            PacketStorage client_handshake = server_receive_packet(server, &client_address, &client_address_length);
+
+            printf("[INFO] [SERVER] [%s] Connected to new client (id: %lu)\n", client_address_string, server->client_handlers_length);
+            server->client_handlers[server->client_handlers_length].connected = true;
             server->client_handlers_length++;
         } break;
         default: break;

@@ -39,6 +39,26 @@ Client* client_create(const char* ip_address, const char* port) {
     return client;
 }
 
+PacketStorage client_receive_packet(Client* client) {
+	struct sockaddr_storage client_address;
+    socklen_t client_address_length = sizeof(struct sockaddr_storage);
+
+    PacketStorage result = {0};
+
+    i64 bytes_received = recvfrom(client->socket, result.buffer, sizeof(result.buffer), 0, (struct sockaddr*) &client_address, &client_address_length);
+    if (bytes_received == -1) {
+        fprintf(stderr, "[ERROR] [CLIENT] Failed to received message from client!\n");
+    }
+    if (bytes_received < (i64) sizeof(PacketHeader)) {
+        fprintf(stderr, "[ERROR] [CLIENT] Packet received from client is too small!\n");
+    }
+
+    memcpy(&result.packet.header, result.buffer, sizeof(result.packet.header));
+    result.packet.data = result.buffer + sizeof(PacketHeader);
+
+    return result;
+}
+
 void client_send_packet(Client* client, Packet packet) {
     if (packet.header.data_size > PACKET_MAX_DATA_SIZE) {
         fprintf(stderr, "[ERROR] [CLIENT] Packet data is large than max data size: %d!\n", PACKET_MAX_DATA_SIZE);
@@ -54,6 +74,46 @@ void client_send_packet(Client* client, Packet packet) {
     if (sendto(client->socket, &buffer, sizeof(PacketHeader) + packet.header.data_size, 0, client->server_address_info->ai_addr, client->server_address_info->ai_addrlen) == -1) {
         fprintf(stderr, "[ERROR] [CLIENT] Failed to send message to server!\n");
     }
+}
+
+void client_connect(Client* client) {
+	Packet packet = {
+		.header = {
+			.type = PACKET_TYPE_NEW_CONNECTION,
+			.sender_id = 0, // new connection packet type ignores sender_id
+			.data_size = 0,
+		},
+		.data = NULL,
+	};
+
+	client_send_packet(client, packet);
+
+	PacketStorage server_packet = client_receive_packet(client);
+	if (server_packet.packet.header.type != PACKET_TYPE_HANDSHAKE) {
+		fprintf(stderr, "[ERROR] [CLIENT] Server packet is not handshake!\n");
+		return;
+	}
+
+	client->id = server_packet.packet.header.sender_id;
+
+	packet = (Packet) {
+		.header = {
+			.type = PACKET_TYPE_HANDSHAKE,
+			.sender_id = client->id,
+			.data_size = 0,
+		},
+		.data = NULL,
+	};
+
+	client_send_packet(client, packet);
+
+	char server_address_string[NI_MAXHOST];
+    if (getnameinfo((const struct sockaddr*) &client->server_address_info->ai_addr, client->server_address_info->ai_addrlen, server_address_string, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == -1) {
+        fprintf(stderr, "[ERROR] [SERVER] Failed to convert client ip into string!\n");
+    }
+
+	printf("[INFO] [CLIENT] Connected to server (id: %u) at %s\n", client->id, server_address_string);
+	client->connected = true;
 }
 
 void client_update(Client* client) {

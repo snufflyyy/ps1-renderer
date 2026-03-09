@@ -9,6 +9,9 @@
 
 typedef struct ClientHandler {
     struct sockaddr_storage address;
+    socklen_t address_length;
+
+    bool connected;
     u32 id;
 } ClientHandler;
 
@@ -19,6 +22,8 @@ typedef struct Server {
 
     ClientHandler client_handlers[SERVER_MAX_CLIENT_CONNECTIONS];
     usize client_handlers_length;
+
+    PacketQueue packet_queue;
 } Server;
 
 Server* server_create(const char* port);
