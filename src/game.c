@@ -2,7 +2,10 @@
 #include "network/client/client.h"
 
 #include <cglm/cglm.h>
+#include <netdb.h>
+#include <string.h>
 #include <sys/socket.h>
+#include <wchar.h>
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
 
@@ -11,7 +14,6 @@
 #include "gfx/shader.h"
 
 #include "player.h"
-#include "network/packet.h"
 
 static void game_event(Game* game, SDL_Event* event);
 
@@ -19,7 +21,7 @@ Game game_create(void) {
 	Game game = {0};
 
 	game.window = window_create(1280, 720, "PS1 Renderer");
-	game.client = client_create("127.0.0.1", "1126");
+	game.client = client_create();
 
 	game.player = player_create((vec3) { 0.0f, 0.0f, 0.0f }, game.window);
 
@@ -27,10 +29,14 @@ Game game_create(void) {
 	game.school_shader = shader_create("../shaders/shader.vert", "../shaders/shader.frag");
 
 	glm_vec3_copy(GAME_DEFAULT_SKY_COLOR, game.sky_color);
+	window_set_clear_color(game.sky_color);
 	game.fog_density = GAME_DEFAULT_FOG_DENSITY;
 
 	game.running = true;
 	game.show_debug_options = true;
+
+	// debug stuff
+	memcpy(game.debug_server_address_string, GAME_DEBUG_DEFAULT_SERVER_ADDRESS, strnlen(GAME_DEBUG_DEFAULT_SERVER_ADDRESS, GAME_DEBUG_MAX_SERVER_ADDRESS_LENGTH));
 
 	return game;
 }
@@ -45,6 +51,9 @@ void game_update(Game* game) {
     client_update(game->client);
 
  	player_update(&game->player, game->window->delta_time);
+
+    window_imgui_begin(game->window);
+    igShowDemoWindow(NULL);
 
 	if (game->show_debug_options) {
     	igBegin("Debug Options (F10)", &game->show_debug_options, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
@@ -77,11 +86,31 @@ void game_update(Game* game) {
       		igDragFloat("Walk Speed", &game->player.walk_speed, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
       		igDragFloat("Run Speed", &game->player.run_speed, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
       		igDragFloat("Jump Amount", &game->player.jump_amount, 0.01f, 0.0f, 1000.0f, "%0.2f", ImGuiSliderFlags_None);
-            igSeparatorText("Multiplayer");
-            igText("Connected: %s", (game->client->connected) ? "Yes" : "No");
-            if (igSmallButton("Connect to Server")) { client_connect(game->client); }
+            igSeparatorText("Client");
+            igInputText("Server Address", game->debug_server_address_string, sizeof(game->debug_server_address_string), ImGuiInputTextFlags_None, NULL, NULL);
+            igInputText("Username", game->client->username, sizeof(game->client->username), ImGuiInputTextFlags_None, NULL, NULL);
+            if (!game->client->connected) {
+                if (igButton("Connect", (ImVec2) { 0.0f, 0.0f })) {
+                    char* port = strstr(game->debug_server_address_string, ":");
+                    char address[NI_MAXHOST];
+                    strncpy(address, game->debug_server_address_string, (usize) (port - game->debug_server_address_string));
+                    port++;
+
+                    client_connect(game->client, address, port);
+                }
+            } else {
+                if (igButton("Disconnect", (ImVec2) { 0.0f, 0.0f })) { client_disconnect(game->client); }
+                igText("Id: %u", game->client->id);
+
+                igSeparator();
+                igText("Chat");
+                ImVec2 available_space = igGetContentRegionAvail();
+                igInputTextMultiline("##", game->client->chat, sizeof(game->client->chat), (ImVec2) { available_space.x, 250.0f }, ImGuiInputTextFlags_ReadOnly, NULL, NULL);
+
+            }
   		igEnd();
 	}
+	window_imgui_end(game->window);
 }
 
 static void game_event(Game* game, SDL_Event* event) {

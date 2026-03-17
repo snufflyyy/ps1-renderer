@@ -25,6 +25,8 @@ typedef struct Window {
 Window* window_create(u32 width, u32 height, const char* title);
 void window_event(Window* window, SDL_Event* event);
 void window_update(Window* window);
+void window_imgui_begin(Window* window);
+void window_imgui_end(Window* window);
 void window_imgui_draw(Window* window);
 void window_set_fullscreen(Window* window, bool value);
 void window_set_vsync(Window* window, bool value);

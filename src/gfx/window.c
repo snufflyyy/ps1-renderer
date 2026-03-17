@@ -127,10 +127,6 @@ void window_event(Window* window, SDL_Event* event) {
 void window_update(Window* window) {
 	SDL_GL_SwapWindow(window->sdl_window);
 
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
-    igNewFrame();
-
 	u64 performance_counter = SDL_GetPerformanceCounter();
 	window->delta_time = (double) (performance_counter - window->last_performance_counter) / window->performance_frequency;
 	window->last_performance_counter = performance_counter;
@@ -140,8 +136,17 @@ void window_update(Window* window) {
 	}
 }
 
-void window_imgui_draw(Window* window) {
+void window_imgui_begin(Window* window) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    igNewFrame();
+}
+
+void window_imgui_end(Window* window) {
     igEndFrame();
+}
+
+void window_imgui_draw(Window* window) {
     igRender();
     ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 }

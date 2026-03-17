@@ -28,5 +28,6 @@ typedef struct Server {
 
 Server* server_create(const char* port);
 void server_send_packet(Server* server, u32 client_id, Packet packet);
+void server_broadcast(Server* server, Packet packet);
 void server_update(Server* server);
 void server_destroy(Server* server);

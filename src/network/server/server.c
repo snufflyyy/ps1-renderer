@@ -1,4 +1,5 @@
 #include "network/server/server.h"
+#include "network/client/client.h"
 #include "network/packet.h"
 
 #include <arpa/inet.h>
@@ -80,6 +81,8 @@ PacketStorage server_receive_packet(Server* server, struct sockaddr_storage* cli
 }
 
 void server_send_packet(Server* server, u32 client_id, Packet packet) {
+    if (!server->client_handlers[client_id].connected && packet.header.type != PACKET_TYPE_HANDSHAKE) { return; }
+
     if (packet.header.data_size > PACKET_MAX_DATA_SIZE) {
         fprintf(stderr, "[ERROR] [SERVER] Packet data is large than max data size: %d!\n", PACKET_MAX_DATA_SIZE);
         return;
@@ -94,13 +97,19 @@ void server_send_packet(Server* server, u32 client_id, Packet packet) {
     }
 }
 
+void server_broadcast(Server* server, Packet packet) {
+    for (u32 i = 0; i < server->client_handlers_length; i++) {
+        server_send_packet(server, i, packet);
+    }
+}
+
 void server_update(Server* server) {
 	struct sockaddr_storage client_address;
 	socklen_t client_address_length;
 
 	PacketStorage client_packet = server_receive_packet(server, &client_address, &client_address_length);
 
-    char client_address_string[NI_MAXHOST];
+    char client_address_string[NI_MAXHOST] = {0};
     if (getnameinfo((const struct sockaddr*) &client_address, client_address_length, client_address_string, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == -1) {
         fprintf(stderr, "[ERROR] [SERVER] Failed to convert client ip into string!\n");
     }
@@ -108,29 +117,80 @@ void server_update(Server* server) {
     switch (client_packet.packet.header.type) {
         case PACKET_TYPE_PING: printf("[INFO] [SERVER] [%s] Ping received\n", client_address_string); break;
         case PACKET_TYPE_NEW_CONNECTION: {
-            server->client_handlers[server->client_handlers_length] = (ClientHandler) {
+            usize id = server->client_handlers_length;
+            for (usize i = 0; i < server->client_handlers_length; i++) {
+                if (!server->client_handlers[i].connected) {
+                    id = i;
+                    break;
+                }
+            }
+
+            server->client_handlers[id] = (ClientHandler) {
             	.address = client_address,
              	.address_length = client_address_length,
               	.connected = false,
-               	.id = (u32) server->client_handlers_length
+               	.id = (u32) id
             };
 
             Packet client_handshake_packet = {
                 .header = {
                     .type = PACKET_TYPE_HANDSHAKE,
-                    .sender_id = (u32) server->client_handlers_length,
+                    .sender_id = (u32) id,
                     .data_size = 0,
                 },
                 .data = NULL,
             };
 
-            server_send_packet(server, (u32) server->client_handlers_length, client_handshake_packet);
+            server_send_packet(server, (u32) id, client_handshake_packet);
+        } break;
+        case PACKET_TYPE_HANDSHAKE: {
+            if (server->client_handlers[client_packet.packet.header.sender_id].connected) {
+                fprintf(stderr, "[WARN] [SERVER] Recevived handshake from already connected client!\n");
+                return;
+            }
 
-            PacketStorage client_handshake = server_receive_packet(server, &client_address, &client_address_length);
+            server->client_handlers[client_packet.packet.header.sender_id].connected = true;
+            if (client_packet.packet.header.sender_id == server->client_handlers_length) { server->client_handlers_length++; }
 
-            printf("[INFO] [SERVER] [%s] Connected to new client (id: %lu)\n", client_address_string, server->client_handlers_length);
-            server->client_handlers[server->client_handlers_length].connected = true;
-            server->client_handlers_length++;
+            char username[CLIENT_MAX_USERNAME_LENGTH];
+            strncpy(username, client_packet.packet.data, client_packet.packet.header.data_size);
+            username[client_packet.packet.header.data_size] = '\0';
+            printf("username: %s\n", username);
+
+            printf("[INFO] [SERVER] [%s] Connected to new client (id: %u)\n", client_address_string, client_packet.packet.header.sender_id);
+
+            char broadcast_message[PACKET_MAX_DATA_SIZE] = {0};
+            snprintf(broadcast_message, sizeof(broadcast_message), "[SERVER] New client connected (id: %u)!\n", client_packet.packet.header.sender_id);
+
+            Packet message_packet = {
+                .header = {
+                    .type = PACKET_TYPE_MESSAGE,
+                    .sender_id = 0,
+                    .data_size = (u32) strnlen(broadcast_message, sizeof(broadcast_message)),
+                },
+                .data = broadcast_message,
+            };
+
+            server_broadcast(server, message_packet);
+        } break;
+        case PACKET_TYPE_DISCONNECT: {
+            server->client_handlers[client_packet.packet.header.sender_id].connected = false;
+
+            printf("[INFO] [SERVER] [%s] Disconnected from client (id: %u)\n", client_address_string, client_packet.packet.header.sender_id);
+
+            char broadcast_message[PACKET_MAX_DATA_SIZE] = {0};
+            snprintf(broadcast_message, sizeof(broadcast_message), "[SERVER] Client disconnected (id: %u)!\n", client_packet.packet.header.sender_id);
+
+            Packet message_packet = {
+                .header = {
+                    .type = PACKET_TYPE_MESSAGE,
+                    .sender_id = 0,
+                    .data_size = (u32) strnlen(broadcast_message, sizeof(broadcast_message)),
+                },
+                .data = broadcast_message,
+            };
+
+            server_broadcast(server, message_packet);
         } break;
         default: break;
     }
